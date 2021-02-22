@@ -89,4 +89,9 @@ ENV/
 # Rope project settings
 .ropeproject
 
+<<<<<<< HEAD
 kubesv/tests/output
+=======
+.DS_Store
+kano_py/data/
+>>>>>>> generate pods and ns
