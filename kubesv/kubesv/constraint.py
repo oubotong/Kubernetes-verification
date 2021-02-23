@@ -155,6 +155,7 @@ def define_model(gi: GlobalInfo):
         ingress_allow_by_pol(src, pol)
     ])
     """
+    # FIXME: this doesn't seem to be right? Need to specify not selected by any policy    
     gi.add_rule(ingress_traffic(src, sel), [
         Not(selected_by_pol(sel, pol))
     ])
@@ -168,6 +169,7 @@ def define_model(gi: GlobalInfo):
         egress_allow_by_pol(dst, pol)
     ])
     """
+    # FIXME: this doesn't seem to be right? Need to specify not selected by any policy    
     gi.add_rule(egress_traffic(dst, sel), [
         Not(selected_by_pol(sel, pol))
     ])
