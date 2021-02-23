@@ -117,7 +117,7 @@ def paper_example():
 
     from itertools import product
     for idx, p in enumerate(product(
-            ['db', 'nginx', 'tomcat', 'user'],
+            ['db', 'nginx', 'tomcat'],
             ['default', 'minikube'],
             ['prod', 'test'])):
         role, ns, env = p
@@ -158,10 +158,10 @@ spec:
   - to:
     - podSelector:
         matchExpressions:
-          - {key: role, operator: In, values: [db, nginx]}
+          - {key: role, operator: NotIn, values: [db, nginx]}
       namespaceSelector:
         matchExpressions:
-          - {key: l, operator: Exists}
+          - {key: l, operator: DoesNotExists}
     ports:
     - protocol: TCP
       port: 5978

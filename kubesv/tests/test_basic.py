@@ -12,7 +12,8 @@ class BasicTestSuite(unittest.TestCase):
         sample.setup_z3_printer()
 
         pods, pols, nams = sample.paper_example()
-        gi = build(pods, pols, nams)
+        gi = build(pods, pols, nams, True, True)
+        selected_by_any = gi.get_relation_core("selected_by_any")
         egress_traffic = gi.get_relation_core("egress_traffic")
         src = gi.declare_var('src', gi.pod_sort)
         dst = gi.declare_var('dst', gi.pod_sort)
