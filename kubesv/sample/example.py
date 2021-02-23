@@ -126,10 +126,8 @@ def paper_example():
             "env": env,
             "role": role
         }))
-        print(idx, name, ns, env, role)
 
     def sample_policy():
-        # allow (default, tomcat) -> (default, nginx) -> (all, db)
         yml = """
 apiVersion: v1
 kind: NetworkPolicy
@@ -138,8 +136,8 @@ metadata:
   namespace: default
 spec:
   podSelector:
-    matchLabels:
-      role: db
+    matchExpressions:
+        - {key: role, operator: NotIn, values: [tomcat, nginx]}
   policyTypes:
   - Ingress
   - Egress

@@ -102,8 +102,11 @@ class GlobalInfo:
     def get_namespace_idx(self, ns: str) -> BitVecVal:
         return BitVecVal(self.nam_map[ns], self.nam_sort)
 
-    def declare_var(self, name, sort):
-        var = Const(name, sort)
+    def declare_var(self, name, sort, is_Var=False):
+        if is_Var:
+            var = Var(name, sort)
+        else:
+            var = Const(name, sort)
         self.fp.declare_var(var)
         return var
 
@@ -113,7 +116,8 @@ def get_fixpoint_engine(**kwargs) -> Fixedpoint:
     fp_options = {
         "ctrl_c": True,
         "engine": "datalog",
-        "datalog.generate_explanations": True,
+        # FIXME: this must be set false to allow negation to be correctly dealt
+        "datalog.generate_explanations": False,
     }
     fp_options.update(kwargs)
     fp.set(**fp_options)
@@ -156,6 +160,9 @@ def define_model(gi: GlobalInfo):
     selected_by_any = Function("selected_by_any", gi.pod_sort, BoolSort())
     gi.register_relation("selected_by_any", selected_by_any, is_core=True)
 
+    selected_by_none = Function("selected_by_none", gi.pod_sort, BoolSort())
+    gi.register_relation("selected_by_none", selected_by_none, is_core=True)
+
     # define ingress/egress_allow_by_pol(src_pod/dst_pod, pol)
     ingress_allow_by_pol = Function("ingress_allow_by_pol", gi.pod_sort, gi.pol_sort, BoolSort())
     gi.register_relation("ingress_allow_by_pol", ingress_allow_by_pol, is_core=True)
@@ -175,6 +182,11 @@ def define_model(gi: GlobalInfo):
         selected_by_pol(sel, pol)
     ])
 
+    gi.add_rule(selected_by_none(sel), [
+        is_pod(sel),
+        Not(selected_by_any(sel))
+    ])
+
     ingress_traffic = Function("ingress_traffic", gi.pod_sort, gi.pod_sort, BoolSort())
     gi.register_relation("ingress_traffic", ingress_traffic, is_core=True)
 
@@ -189,8 +201,9 @@ def define_model(gi: GlobalInfo):
     ])
     if gi.check_select_by_any:
         gi.add_rule(ingress_traffic(src, sel), [
+            is_pod(src),
             is_pod(sel),
-            Not(selected_by_any(sel))
+            selected_by_none(sel)
         ])
 
     egress_traffic = Function("egress_traffic", gi.pod_sort, gi.pod_sort, BoolSort())
@@ -204,8 +217,9 @@ def define_model(gi: GlobalInfo):
     ])
     if gi.check_select_by_any:
         gi.add_rule(egress_traffic(dst, sel), [
+            is_pod(dst),
             is_pod(sel),
-            Not(selected_by_any(sel))
+            selected_by_none(sel)
         ])
 
     edge = Function("edge", gi.pod_sort, gi.pod_sort, BoolSort())
