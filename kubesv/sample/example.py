@@ -117,7 +117,7 @@ def paper_example():
 
     from itertools import product
     for idx, p in enumerate(product(
-            ['db', 'nginx', 'tomcat', 'user'],
+            ['db', 'nginx', 'tomcat'],
             ['default', 'minikube'],
             ['prod', 'test'])):
         role, ns, env = p
@@ -126,10 +126,8 @@ def paper_example():
             "env": env,
             "role": role
         }))
-        print(idx, name, ns, env, role)
 
     def sample_policy():
-        # allow (default, tomcat) -> (default, nginx) -> (all, db)
         yml = """
 apiVersion: v1
 kind: NetworkPolicy
@@ -138,8 +136,8 @@ metadata:
   namespace: default
 spec:
   podSelector:
-    matchLabels:
-      role: db
+    matchExpressions:
+        - {key: role, operator: NotIn, values: [tomcat, nginx]}
   policyTypes:
   - Ingress
   - Egress
@@ -158,10 +156,10 @@ spec:
   - to:
     - podSelector:
         matchExpressions:
-          - {key: role, operator: In, values: [db, nginx]}
+          - {key: role, operator: NotIn, values: [db, nginx]}
       namespaceSelector:
         matchExpressions:
-          - {key: l, operator: Exists}
+          - {key: l, operator: DoesNotExists}
     ports:
     - protocol: TCP
       port: 5978

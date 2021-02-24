@@ -95,7 +95,7 @@ class PodAdapter:
 @dataclass
 class ExistRelation:
     EXISTS: ClassVar[int] = 2
-    DOES_NOT_EXISTS: ClassVar[int] = 2
+    DOES_NOT_EXISTS: ClassVar[int] = 3
 
     operator: int
     key: str
@@ -253,7 +253,7 @@ class PolicyPeerAdapter:
     @property
     def ip_block(self) -> Optional[Tuple[IPAddress, List[IPAddress]]]:
         """
-        TODO: for current version, may ignore this selector
+        XXX: for current version, may ignore this selector
         IPBlock defines policy on a particular IPBlock. 
         If this field is set then neither of the other fields can be.
         """
