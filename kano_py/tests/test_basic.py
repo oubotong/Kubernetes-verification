@@ -1,6 +1,7 @@
 from kano.model import ReachabilityMatrix
 from kano.algorithm import *
 from .context import sample
+from .generate import ConfigFiles
 
 import unittest
 
@@ -9,6 +10,9 @@ class BasicTestSuite(unittest.TestCase):
     """Basic test cases."""
 
     def test_reachability_matrix(self):
+        config = ConfigFiles()
+        # to test different settings, feed in different parameters here
+        config.generateConfigFiles()
         containers, policies = sample.paper_example()
         matrix = ReachabilityMatrix.build_matrix(containers, policies)
         # Nginx -> DB, Tomcat -> Nginx, User -> Tomcat

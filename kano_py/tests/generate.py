@@ -12,11 +12,15 @@ class ConfigFiles:
         self.keys = ["key"+str(i) for i in range(keyL)]
         self.values = ["value"+str(i) for i in range(valueL)]
         self.userL = userL
+        self.users = ["user"+str(i) for i in range(userL)]
         self.selectedLL = selectedLL
         self.allowNSLL = allowNSLL
         self.allowpodLL = allowpodLL
         self.generatePods()
-        self.generateNamespaces()
+        self.directory = "data/policy"
+        if not os.path.exists("data"):
+            os.makedirs("data")
+        # self.generateNamespaces()
 
     def generatePods(self):
         containers = []
@@ -24,6 +28,7 @@ class ConfigFiles:
             podName = "pod" + str(i)
             # nsName = random.choice(namespaces)
             labels = {}
+            labels["User"] = random.choice(self.users)
             for l in range(random.randint(0, self.podLL-1)):
                 labels[random.choice(self.keys)] = random.choice(self.values)
             pod = Container(podName, labels)
@@ -46,12 +51,35 @@ class ConfigFiles:
 
 
     def generateConfigFiles(self):
+        for i in range(self.policyN):
+            # format
+            data = "apiVersion: networking.k8s.io/v1\nkind: NetworkPolicy\nmetadata:\n  name: test-network-policy\n  namespace: default\n"
+            data += "spec:\n  podSelector:\n    matchLabels:\n"
+            # randomly select two containers
+            candidates = random.sample(self.containers, 2)
+            data += self.printLabels(candidates[0], "      ")
+            # format
+            data += "  policyTypes:\n  - Ingress\n  - Egress\n"
+            data += random.choice([" ingress", " egress"])
+            data += ":\n - from:\n    - podSelector:\n        matchLabels:\n"
+            data += self.printLabels(candidates[1], "          ")
+            # write to config file
+            f = open(self.directory + str(i) + ".yml", "a")
+            f.write(data)
+            f.close()
         return
 
+    def printLabels(self, container, indent):
+        string = str(indent) + "User: " + str(container.getValueOrDefault("User", "")) + "\n"
+        count = 0
+        for key,value in container.getLabels().items():
+            if count>=3:
+                break
+            if key == "User":
+                continue
+            string += str(indent) + str(key) + ": " + str(value) + "\n"
+            count += 1
+        return string
 
     def getPods(self):
         return self.containers
-
-
-    # def getNamespaces(self):
-    #     return self.namespaces
