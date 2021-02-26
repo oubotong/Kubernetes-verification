@@ -90,3 +90,5 @@ ENV/
 .ropeproject
 
 kubesv/tests/output
+kano_py/data/
+.DS_Store

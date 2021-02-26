@@ -20,6 +20,9 @@ class Container:
         if key in self.labels:
             return self.labels[key]
         return value
+    
+    def getLabels(self):
+        return self.labels
 
 
 @dataclass
