@@ -59,12 +59,23 @@ class ConfigFiles:
             candidates = random.sample(self.containers, 2)
             data += self.printLabels(candidates[0], "      ")
             # format
-            data += "  policyTypes:\n  - Ingress\n  - Egress\n"
-            data += random.choice([" ingress", " egress"])
-            data += ":\n - from:\n    - podSelector:\n        matchLabels:\n"
+            #data += "  policyTypes:\n  - Ingress\n  - Egress\n"
+            #data += random.choice(["  ingress", "  egress"])
+            #data += ":\n  - from:\n    - podSelector:\n        matchLabels:\n"
+
+            data += "  policyTypes:\n"
+            choice = random.choice(["  ingress", "  egress"])
+            if choice == "  ingress":
+                data += "  - Ingress\n" + choice + ":\n  - from:\n"
+            elif choice == "  egress":
+                data += "  - Egress\n" + choice + ":\n  - to:\n"
+            data +="    - podSelector:\n        matchLabels:\n"
+
             data += self.printLabels(candidates[1], "          ")
+
             # write to config file
-            f = open(self.directory + str(i) + ".yml", "a")
+            #f = open(self.directory + str(i) + ".yml", "a")
+            f = open(self.directory + str(i) + ".yml", "w")
             f.write(data)
             f.close()
         return

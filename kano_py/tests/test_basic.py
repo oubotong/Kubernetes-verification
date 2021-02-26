@@ -1,7 +1,8 @@
 from kano.model import ReachabilityMatrix
 from kano.algorithm import *
-from .context import sample
-from .generate import ConfigFiles
+from tests.context import sample
+from tests.generate import ConfigFiles
+from kano.parser import ConfigParser
 
 import unittest
 
@@ -13,7 +14,15 @@ class BasicTestSuite(unittest.TestCase):
         config = ConfigFiles()
         # to test different settings, feed in different parameters here
         config.generateConfigFiles()
-        containers, policies = sample.paper_example()
+
+        cp = ConfigParser('data/')
+        containers, policies = cp.parse() # can also pass filepath into cp.parse, e.g. cp.parse('data/')
+        #containers should be empty, because no container yaml
+
+        containers = config.getPods()
+
+        #containers, policies = sample.paper_example()
+
         matrix = ReachabilityMatrix.build_matrix(containers, policies)
         # Nginx -> DB, Tomcat -> Nginx, User -> Tomcat
         assert matrix[0, 1] & matrix[2, 0] & matrix[4, 2]
