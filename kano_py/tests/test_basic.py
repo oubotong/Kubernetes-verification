@@ -1,7 +1,7 @@
 from kano.model import ReachabilityMatrix
 from kano.algorithm import *
-from tests.context import sample
-from tests.generate import ConfigFiles
+from .context import sample
+from .generate import ConfigFiles
 from kano.parser import ConfigParser
 
 import unittest

@@ -127,7 +127,48 @@ def paper_example():
             "role": role
         }))
 
-    def sample_policy():
+    def sample_policy0():
+        yml = """
+apiVersion: v1
+kind: NetworkPolicy
+metadata:
+  name: allow-default-nginx
+  namespace: default
+spec:
+  podSelector:
+    matchExpressions:
+        - {key: role, operator: NotIn, values: [tomcat, nginx]}
+    matchLabels:
+        env: prod
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          nonsense: default
+      podSelector:
+        matchLabels:
+          role: tomcat
+    ports:
+    - protocol: TCP
+      port: 6379
+  egress:
+  - to:
+    - podSelector:
+        matchExpressions:
+          - {key: role, operator: NotIn, values: [db, nginx]}
+      namespaceSelector:
+        matchExpressions:
+          - {key: l, operator: DoesNotExists}
+    ports:
+    - protocol: TCP
+      port: 5978
+"""
+        return PolicyAdapter(from_yaml('V1NetworkPolicy', yml))
+
+    def sample_policy1():
         yml = """
 apiVersion: v1
 kind: NetworkPolicy
@@ -166,10 +207,51 @@ spec:
 """
         return PolicyAdapter(from_yaml('V1NetworkPolicy', yml))
 
+    def sample_policy2():
+        yml = """
+apiVersion: v1
+kind: NetworkPolicy
+metadata:
+  name: allow-default-nginx
+  namespace: default
+spec:
+  podSelector:
+    matchExpressions:
+        - {key: role, operator: NotIn, values: [db, nginx]}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          nonsense: default
+      podSelector:
+        matchLabels:
+          role: db
+    ports:
+    - protocol: TCP
+      port: 6379
+  egress:
+  - to:
+    - podSelector:
+        matchExpressions:
+          - {key: role, operator: NotIn, values: [tomcat, nginx]}
+      namespaceSelector:
+        matchExpressions:
+          - {key: l, operator: DoesNotExists}
+    ports:
+    - protocol: TCP
+      port: 5978
+"""
+        return PolicyAdapter(from_yaml('V1NetworkPolicy', yml))
+
     # pprint(sample_policy().to_dict())
 
     pols = [
-        sample_policy()
+        sample_policy0(),
+        sample_policy1(),
+        sample_policy2()
     ]
     
     return pods, pols, nams    
