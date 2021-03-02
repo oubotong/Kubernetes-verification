@@ -69,11 +69,13 @@ select_by_any(Pod) :-
 
 % if the traffic source is the pod's local node
 ingress_traffic(Pod, Pod).
+
 % ... OR if the traffic matches at least one ingress rule across all of the NetworkPolicy objects whose podSelector matches the pod
 ingress_traffic(SrcPod, SelectedPod) :-
     select_by_pol(SelectedPod, Pol),
     ingress_allow_by_pol(SrcPod, Pol)
     .
+
 % ... OR there are no NetworkPolicies selecting the pod (and cluster policy otherwise [like ClusterRole] allows the traffic)
 ingress_traffic(_, SelectedPod) :-
     \(select_by_any(SelectedPod)).
@@ -83,6 +85,7 @@ egress_traffic(DstPod, SelectedPod) :-
     select_by_pol(SelectedPod, Pol),
     egress_allow_by_pol(SrcPod, Pol)
     .
+
 % ... OR there are no NetworkPolicies selecting the pod (and cluster policy otherwise [like ClusterRole] allows the traffic)
 egress_traffic(_, SelectedPod) :-
     \(select_by_any(SelectedPod)).

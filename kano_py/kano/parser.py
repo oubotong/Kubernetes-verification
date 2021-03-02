@@ -1,4 +1,4 @@
-from kano.model import *
+from .model import *
 
 from yaml import load, dump
 import os
@@ -45,6 +45,7 @@ class ConfigParser:
                             self.create_object(data)
             except:
                 print("Error opening or reading directory")
+                raise 
 
         return self.containers, self.policies
 
@@ -77,9 +78,13 @@ class ConfigParser:
 
         elif data['kind'] == 'Pod':
             labels = data['metadata']['labels']
+            # XXX: use pod name as container name since they are the label owners
+            """
             for container in data['spec']['containers']:
                 new_container = Container(container['name'], labels)
-                self.containers.append(new_container)
+            """
+            new_container = Container(data['metadata']['name'], labels)
+            self.containers.append(new_container)
 
 
     def print_all(self):

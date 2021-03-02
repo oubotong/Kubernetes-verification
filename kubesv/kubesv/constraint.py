@@ -116,7 +116,7 @@ def get_fixpoint_engine(**kwargs) -> Fixedpoint:
     fp_options = {
         "ctrl_c": True,
         "engine": "datalog",
-        # FIXME: this must be set false to allow negation to be correctly dealt
+        # NOTE: this must be set false to allow negation to be correctly dealt (verified by Nikolaj Bjorner)
         "datalog.generate_explanations": False,
     }
     fp_options.update(kwargs)
@@ -124,12 +124,11 @@ def get_fixpoint_engine(**kwargs) -> Fixedpoint:
     return fp
 
 
-def get_datalog(fp: Fixedpoint, queries: List[Any]) -> str:
+def get_smtlib(fp: Fixedpoint, queries: List[Any]) -> str:
     return fp.to_string(queries)
 
 
 def get_answer(fp: Fixedpoint, queries: List[Any]) -> Tuple[CheckSatResult, Any]:
-    # TODO: parse the answer
     return (fp.query(queries), fp.get_answer())
 
 
@@ -225,18 +224,17 @@ def define_model(gi: GlobalInfo):
     edge = Function("edge", gi.pod_sort, gi.pod_sort, BoolSort())
     gi.register_relation("edge", edge, is_core=True)
 
+    # connected, if source's egress contains destination & destination's ingress contains source
     gi.add_rule(edge(src, dst), [
-        ingress_traffic(src, sel),
-        egress_traffic(dst, sel)
+        ingress_traffic(src, dst),
+        egress_traffic(dst, src)
     ])
 
     path = Function("path", gi.pod_sort, gi.pod_sort, BoolSort())
     gi.register_relation("path", path, is_core=True)
 
     gi.add_rule(path(src, dst), edge(src, dst))
-    gi.add_rule(path(src, dst), [edge(src, sel), edge(sel, dst)])
-
-    # TODO: invariants?
+    gi.add_rule(path(src, dst), [edge(src, sel), edge(sel, dst)])            
 
 
 def define_pod_facts(gi: GlobalInfo):

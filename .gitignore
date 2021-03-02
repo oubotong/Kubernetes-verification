@@ -91,4 +91,5 @@ ENV/
 
 kubesv/tests/output
 kano_py/data/
+data/
 .DS_Store

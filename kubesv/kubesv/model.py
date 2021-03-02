@@ -253,7 +253,7 @@ class PolicyPeerAdapter:
     @property
     def ip_block(self) -> Optional[Tuple[IPAddress, List[IPAddress]]]:
         """
-        XXX: for current version, may ignore this selector
+        TODO: for current version, may ignore this selector
         IPBlock defines policy on a particular IPBlock. 
         If this field is set then neither of the other fields can be.
         """
@@ -471,7 +471,7 @@ class PolicyAdapter:
 
         # if ingress is empty, this NetworkPolicy does not allow any traffic
         # no ingress_allow_by_pol(Pod, idx) defined
-        if self.egress_rules is None:
+        if self.ingress_rules is None:
             return
 
         # each ingress rule is independent (OR-chained)

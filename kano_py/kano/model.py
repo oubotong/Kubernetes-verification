@@ -126,7 +126,8 @@ class ReachabilityMatrix:
     def build_matrix(containers: List[Container], policies: List[Policy]):
         n_container = len(containers)
         labelMap: Dict[str, bitarray] = DefaultDict(lambda: bitarray('0' * n_container))
-        matrix = [bitarray('0' * n_container) for _ in range(n_container)]
+        in_matrix = [bitarray('0' * n_container) for _ in range(n_container)]
+        out_matrix = [bitarray('0' * n_container) for _ in range(n_container)]
 
         for i, container in enumerate(containers):
             for key, value in container.labels.items():
@@ -157,10 +158,17 @@ class ReachabilityMatrix:
 
             for idx in range(n_container):
                 if select_set[idx]:
-                    matrix[idx] |= allow_set
+                    if policy.is_ingress():
+                        in_matrix[idx] |= allow_set
+                    else:
+                        out_matrix[idx] |= allow_set
                     containers[idx].select_policies.append(i)
                 if allow_set[idx]:
                     containers[idx].allow_policies.append(i)
+
+        matrix = [bitarray('0' * n_container) for _ in range(n_container)]
+        for i in range(n_container):
+            matrix[i] = in_matrix[i] & out_matrix[i]
 
         return ReachabilityMatrix(n_container, matrix)
 

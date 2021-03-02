@@ -1,6 +1,8 @@
 import os
 import random
-from kano.model import *
+import yaml
+from collections import OrderedDict
+from ..kano.model import *
 
 class ConfigFiles:
     def __init__(self, podN=100,nsN=5,policyN=50,podLL=5,nsLL=5,keyL=5,valueL=10,userL=5,selectedLL=3,allowNSLL=3,allowpodLL=3):
@@ -16,10 +18,10 @@ class ConfigFiles:
         self.selectedLL = selectedLL
         self.allowNSLL = allowNSLL
         self.allowpodLL = allowpodLL
-        self.generatePods()
         self.directory = "data/policy"
         if not os.path.exists("data"):
             os.makedirs("data")
+        self.generatePods()
         # self.generateNamespaces()
 
     def generatePods(self):
@@ -33,6 +35,18 @@ class ConfigFiles:
                 labels[random.choice(self.keys)] = random.choice(self.values)
             pod = Container(podName, labels)
             containers.append(pod)
+
+            y_pod = {}
+            y_pod['apiVersion'] = 'v1'
+            y_pod['kind'] = 'Pod'
+            y_pod['metadata'] = {
+                'name': podName,
+                'namespace': 'default',
+                'labels': labels
+            }
+            with open("data/pod{}.yml".format(i), 'w+') as f:
+                f.write(yaml.dump(y_pod, default_flow_style=False, sort_keys=False))
+
         self.containers = containers
         return
 
@@ -94,3 +108,8 @@ class ConfigFiles:
 
     def getPods(self):
         return self.containers
+
+
+if __name__ == "__main__":
+    config = ConfigFiles()
+    config.generateConfigFiles()

@@ -1,4 +1,4 @@
-from kano.model import *
+from .model import *
 
 
 def all_reachable(matrix: ReachabilityMatrix) -> List[int]:
@@ -67,12 +67,10 @@ def policy_shadow(matrix: ReachabilityMatrix, policies: List[Policy], containers
     pols = []
     for i, container in enumerate(containers):
         i_select = container.select_policies
-        for j in i_select:
-            for k in i_select:
+        for j, pj in enumerate(i_select):
+            for k, pk in enumerate(i_select):
                 if j == k:
                     continue
-                pj = policies[j]
-                pk = policies[k]
                 j_allow = pj.working_allow_set
                 k_allow = pk.working_allow_set
                 if ((j_allow & k_allow) ^ k_allow).count() == 0:
