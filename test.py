@@ -45,10 +45,11 @@ metadata:
 
 
 def compare_results():
-    config = ConfigFiles()
+    config = ConfigFiles(podN=100)
     config.generateConfigFiles()
     cp = ConfigParser()
     containers, policies = cp.parse('./data')
+    k_pods, k_pols, k_ns = read_kubesv_yaml('./data')
 
     with timing("calculating reachability matrix"):
         matrix = ReachabilityMatrix.build_matrix(containers, policies)
@@ -56,7 +57,6 @@ def compare_results():
     # https://github.com/Z3Prover/z3/discussions/4992
     # @nunoplopes: If you really need speed, you can't use Python. Python is slow and Z3's Python API is super slow.
     with timing("calculating SMT constraints"):
-        k_pods, k_pols, k_ns = read_kubesv_yaml('./data')
         gi = build(k_pods, k_pols, k_ns, 
                 check_self_ingress_traffic=False, 
                 check_select_by_no_policy=False)
@@ -78,8 +78,8 @@ def compare_results():
             "user_crosscheck": list(ksv.user_crosscheck(gi, "User")[1]),
         }
 
-    print(kano_results)
-    print(ksv_results)
+    # print(kano_results)
+    # print(ksv_results)
 
 
 if __name__ == "__main__":

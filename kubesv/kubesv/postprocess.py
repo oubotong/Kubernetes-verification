@@ -136,7 +136,7 @@ def all_reach_isolate(gi: GlobalInfo):
 
 def user_crosscheck(gi: GlobalInfo, l: str):
     """
-    A container can reach other user’s container in the container network
+    A container can be reached from other user’s container in the container network
     User is specified by the label. 
     Kano: All constainers should have that label.
     """
@@ -256,7 +256,7 @@ def policy_shadow(gi: GlobalInfo):
     return sat, parse_z3_result(answer)
 
 
-def policy_shadow(gi: GlobalInfo):
+def policy_conflict(gi: GlobalInfo):
     """
     The connections built by a policy are totally contradict the connections built by another    
     NOTE: this is a general version, not Kano's per pod version

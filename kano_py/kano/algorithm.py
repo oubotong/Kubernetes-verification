@@ -30,7 +30,7 @@ def user_crosscheck(
         label: str) -> List[int]:
     """
     User cross. 
-    A container can reach other user’s container in the container network
+    A container can be reached from other user’s container in the container network
     """
     user_crosslist = []
     user_map = user_hashmap(containers, label)
