@@ -1,11 +1,9 @@
 """
 Post processing some z3 results to implement similar results as Kano.
 Kano's problems: 
-    1. namespace support (namespace is separated objects from pods/containers), and namespaceSelector requires these entities
-    2. self-ingress traffic & not selected traffic (serious)
-    3. fail to handle empty selectors => which means selecting all instead of none
-    4. Kano only consider edges, not transistive paths
-    5. ad-hoc algorithm, NoD can express
+    1. fail to handle empty selectors => which means selecting all instead of none
+    2. Kano only consider edges, not transistive paths
+    3. ad-hoc algorithm, NoD can express
 """
 from io import UnsupportedOperation
 from z3 import *

@@ -123,11 +123,18 @@ class Policy:
 
 class ReachabilityMatrix:
     @staticmethod
-    def build_matrix(containers: List[Container], policies: List[Policy]):
+    def build_matrix(containers: List[Container], policies: List[Policy], 
+            check_self_ingress_traffic=True, 
+            check_select_by_no_policy=True):
         n_container = len(containers)
         labelMap: Dict[str, bitarray] = DefaultDict(lambda: bitarray('0' * n_container))
-        in_matrix = [bitarray('0' * n_container) for _ in range(n_container)]
-        out_matrix = [bitarray('0' * n_container) for _ in range(n_container)]
+        have_seen = bitarray('0' * n_container)
+        in_matrix = [bitarray('1' * n_container) for _ in range(n_container)]
+        out_matrix = [bitarray('1' * n_container) for _ in range(n_container)]
+        if not check_select_by_no_policy:
+            in_matrix = [bitarray('0' * n_container) for _ in range(n_container)]
+            out_matrix = [bitarray('0' * n_container) for _ in range(n_container)]
+            have_seen = bitarray('1' * n_container)
 
         for i, container in enumerate(containers):
             for key, value in container.labels.items():
@@ -157,17 +164,30 @@ class ReachabilityMatrix:
             policy.store_bcp(select_set, allow_set)
 
             for idx in range(n_container):
+                if allow_set[idx]:
+                    if policy.is_ingress() and not have_seen[idx]:
+                        out_matrix[idx].setall(False)
+                        for j in range(n_container):
+                            in_matrix[j][idx] = False
+                        have_seen[idx] = True
+                    containers[idx].allow_policies.append(i)
+            for idx in range(n_container):
                 if select_set[idx]:
-                    if policy.is_ingress():
+                    if policy.is_egress() and not have_seen[idx]:
+                        out_matrix[idx].setall(False)
+                        for j in range(n_container):
+                            in_matrix[j][idx] = False
+                        have_seen[idx] = True
+                    if policy.is_ingress():   
                         in_matrix[idx] |= allow_set
                     else:
                         out_matrix[idx] |= allow_set
                     containers[idx].select_policies.append(i)
-                if allow_set[idx]:
-                    containers[idx].allow_policies.append(i)
 
         matrix = [bitarray('0' * n_container) for _ in range(n_container)]
         for i in range(n_container):
+            if check_self_ingress_traffic:
+                in_matrix[i][i] = True
             matrix[i] = in_matrix[i] & out_matrix[i]
 
         return ReachabilityMatrix(n_container, matrix)

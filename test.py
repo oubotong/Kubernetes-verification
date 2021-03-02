@@ -10,6 +10,7 @@ from kano_py.tests.generate import ConfigFiles
 from kubesv.kubesv.constraint import *
 from kubesv.kubesv.postprocess import *
 from kubesv.kubesv.parser import from_yaml
+from pprint import pprint
 
 
 @contextmanager
@@ -45,21 +46,25 @@ metadata:
 
 
 def compare_results():
-    config = ConfigFiles(podN=100)
+    config = ConfigFiles()
     config.generateConfigFiles()
     cp = ConfigParser()
     containers, policies = cp.parse('./data')
     k_pods, k_pols, k_ns = read_kubesv_yaml('./data')
+    check_self_ingress_traffic=False 
+    check_select_by_no_policy=False
 
     with timing("calculating reachability matrix"):
-        matrix = ReachabilityMatrix.build_matrix(containers, policies)
+        matrix = ReachabilityMatrix.build_matrix(containers, policies, 
+            check_self_ingress_traffic=check_self_ingress_traffic,
+            check_select_by_no_policy=check_select_by_no_policy)
 
     # https://github.com/Z3Prover/z3/discussions/4992
     # @nunoplopes: If you really need speed, you can't use Python. Python is slow and Z3's Python API is super slow.
     with timing("calculating SMT constraints"):
         gi = build(k_pods, k_pols, k_ns, 
-                check_self_ingress_traffic=False, 
-                check_select_by_no_policy=False)
+                check_self_ingress_traffic=check_self_ingress_traffic, 
+                check_select_by_no_policy=check_select_by_no_policy)
     
     with timing("measuring kano algorithm speed"):
         kano_results = {
