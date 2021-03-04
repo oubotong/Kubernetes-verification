@@ -5,7 +5,7 @@ from collections import OrderedDict
 from ..kano.model import *
 
 class ConfigFiles:
-    def __init__(self, podN=100,nsN=5,policyN=50,podLL=5,nsLL=5,keyL=5,valueL=10,userL=5,selectedLL=3,allowNSLL=3,allowpodLL=3):
+    def __init__(self, directory='data', podN=100,nsN=5,policyN=50,podLL=5,nsLL=5,keyL=5,valueL=10,userL=5,selectedLL=3,allowNSLL=3,allowpodLL=3):
         self.podN = podN
         self.nsN = nsN
         self.policyN = policyN
@@ -18,9 +18,9 @@ class ConfigFiles:
         self.selectedLL = selectedLL
         self.allowNSLL = allowNSLL
         self.allowpodLL = allowpodLL
-        self.directory = "data/policy"
-        if not os.path.exists("data"):
-            os.makedirs("data")
+        self.directory = directory
+        if not os.path.exists(directory):
+            os.makedirs(directory)
         self.generatePods()
         # self.generateNamespaces()
 
@@ -44,7 +44,7 @@ class ConfigFiles:
                 'namespace': 'default',
                 'labels': labels
             }
-            with open("data/pod{}.yml".format(i), 'w+') as f:
+            with open("{}/pod{}.yml".format(self.directory, i), 'w+') as f:
                 f.write(yaml.dump(y_pod, default_flow_style=False, sort_keys=False))
 
         self.containers = containers
@@ -89,7 +89,7 @@ class ConfigFiles:
 
             # write to config file
             #f = open(self.directory + str(i) + ".yml", "a")
-            f = open(self.directory + str(i) + ".yml", "w")
+            f = open(self.directory + "/policy" + str(i) + ".yml", "w")
             f.write(data)
             f.close()
         return

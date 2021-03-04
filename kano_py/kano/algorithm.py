@@ -2,18 +2,18 @@ from .model import *
 
 
 def all_reachable(matrix: ReachabilityMatrix) -> List[int]:
-    all_reachables = []
+    all_reachables = set()
     for i in range(matrix.container_size):
         if matrix.getcol(i).count() == matrix.container_size:
-            all_reachables.append(i)
+            all_reachables.add(i)
     return all_reachables
 
 
 def all_isolated(matrix: ReachabilityMatrix) -> List[int]:
-    all_isolated = []
+    all_isolated = set()
     for i in range(matrix.container_size):
         if matrix.getcol(i).count() == 0:
-            all_isolated.append(i)
+            all_isolated.add(i)
     return all_isolated
 
 
@@ -32,13 +32,13 @@ def user_crosscheck(
     User cross. 
     A container can be reached from other user’s container in the container network
     """
-    user_crosslist = []
+    user_crosslist = set()
     user_map = user_hashmap(containers, label)
     for i, container in enumerate(containers):
         diff_set = ~ user_map[container.getValueOrDefault(label, "")]
         diff_set &= matrix.getcol(i)
         if diff_set.count() != 0:
-            user_crosslist.append(i)
+            user_crosslist.add(i)
     return user_crosslist
 
 

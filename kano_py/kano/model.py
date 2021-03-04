@@ -28,11 +28,15 @@ class Container:
 @dataclass
 class PolicySelect:
     labels: Dict[str, str]
+    is_allow_all = False
+    is_deny_all = False
 
 
 @dataclass
 class PolicyAllow:
     labels: Dict[str, str]
+    is_allow_all = False
+    is_deny_all = False
 
 
 @dataclass
@@ -162,6 +166,16 @@ class ReachabilityMatrix:
                     allow_set[idx] = False
             
             policy.store_bcp(select_set, allow_set)
+
+            if policy.working_allow.is_allow_all:
+                allow_set.setall(True)
+            elif policy.working_allow.is_deny_all:
+                allow_set.setall(False)
+            
+            if policy.working_selector.is_allow_all:
+                select_set.setall(True)
+            elif policy.working_selector.is_deny_all:
+                select_set.setall(False)            
 
             for idx in range(n_container):
                 if allow_set[idx]:
