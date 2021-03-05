@@ -105,7 +105,7 @@ def all_reachable_native(gi: GlobalInfo):
     fact = [all_reachable(dst)]
     sat, answer = get_answer(gi.fp, fact)
     if sat == z3.unsat:
-        return sat, []
+        return sat, set()
 
     return sat, parse_z3_result(answer)
 
@@ -135,7 +135,7 @@ def all_isolated_native(gi: GlobalInfo):
     fact = [all_isolated(dst)]
     sat, answer = get_answer(gi.fp, fact)
     if sat == z3.unsat:
-        return sat, []
+        return sat, set()
 
     return sat, parse_z3_result(answer)
 
