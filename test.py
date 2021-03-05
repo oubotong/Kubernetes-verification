@@ -46,8 +46,8 @@ metadata:
 
 
 def compare_results():
-    data_folder = "data2"
-    config = ConfigFiles(data_folder, podN=1000, policyN=100)
+    data_folder = "data"
+    config = ConfigFiles(data_folder, podN=1000, policyN=250)
     config.generateConfigFiles()
     cp = ConfigParser()
     containers, policies = cp.parse(data_folder)
@@ -56,7 +56,10 @@ def compare_results():
     check_select_by_no_policy = True
     ground_default_pod = True
 
-    print("Configuration: ", check_self_ingress_traffic, check_select_by_no_policy, ground_default_pod)
+    print("Configuration: ", 
+        check_self_ingress_traffic, 
+        check_select_by_no_policy, 
+        ground_default_pod)
 
     with timing("calculating reachability matrix"):
         matrix = ReachabilityMatrix.build_matrix(containers, policies, 
@@ -87,11 +90,12 @@ def compare_results():
             "algorithm": "z3nd",
             "all_reachable": ar,
             "all_isolated": ai,
-            "user_crosscheck": list(ksv.user_crosscheck(gi, "User")[1]),
+            "user_crosscheck": ksv.user_crosscheck(gi, "User")[1],
         }
 
-    print(kano_results)
-    print(ksv_results)
+    print(kano_results["all_reachable"].symmetric_difference(ksv_results["all_reachable"]))
+    print(kano_results["all_isolated"].symmetric_difference(ksv_results["all_isolated"]))
+    print(kano_results["user_crosscheck"].symmetric_difference(ksv_results["user_crosscheck"]))
 
 
 if __name__ == "__main__":
