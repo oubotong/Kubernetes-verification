@@ -1,6 +1,7 @@
 """
 Kubernetes configuration files models
 """
+from kubesv.kubesv.constraint import build
 from typing import *
 from typing_extensions import *
 from dataclasses import dataclass, field
@@ -129,7 +130,8 @@ class ReachabilityMatrix:
     @staticmethod
     def build_matrix(containers: List[Container], policies: List[Policy], 
             check_self_ingress_traffic=True, 
-            check_select_by_no_policy=True):
+            check_select_by_no_policy=True,
+            build_transpose_matrix=False):
         n_container = len(containers)
         labelMap: Dict[str, bitarray] = DefaultDict(lambda: bitarray('0' * n_container))
         have_seen = bitarray('0' * n_container)
@@ -204,11 +206,20 @@ class ReachabilityMatrix:
                 in_matrix[i][i] = True
             matrix[i] = in_matrix[i] & out_matrix[i]
 
-        return ReachabilityMatrix(n_container, matrix)
+        return ReachabilityMatrix(n_container, matrix, build_transpose_matrix)
 
-    def __init__(self, container_size: int, matrix: Any) -> None:
+    def build_tranpose(self):
+        self.transpose_matrix = [bitarray('0' * self.container_size) for _ in range(self.container_size)]
+        for i in range(self.container_size):
+            for j in range(self.container_size):
+                self.transpose_matrix[i][j] = self.matrix[j][i]
+
+    def __init__(self, container_size: int, matrix: Any, build_transpose_matrix=False) -> None:
         self.container_size = container_size
         self.matrix = matrix
+        self.transpose_matrix = None
+        if build_transpose_matrix:
+            self.build_tranpose()
 
     def __setitem__(self, key, value):
         self.matrix[key[0]][key[1]] = value
@@ -220,6 +231,8 @@ class ReachabilityMatrix:
         return self.matrix[index]
 
     def getcol(self, index):
+        if self.transpose_matrix is not None:
+            return self.transpose_matrix[index]
         value = bitarray(self.container_size)
         for i in range(self.container_size):
             value[i] = self.matrix[i][index]

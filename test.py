@@ -47,24 +47,32 @@ metadata:
 
 def compare_results():
     data_folder = "data"
-    config = ConfigFiles(data_folder, podN=1000, policyN=250)
+    config = ConfigFiles(data_folder, podN=1000, policyN=50)
     config.generateConfigFiles()
     cp = ConfigParser()
     containers, policies = cp.parse(data_folder)
     k_pods, k_pols, k_ns = read_kubesv_yaml(data_folder)
+
+    # Enable ingress_traffic from self pod
     check_self_ingress_traffic = True 
+    # Enable default policy checking
     check_select_by_no_policy = True
+    # Build transpose reachablity matrix -> fast getCol(k) operation
+    build_transpose_matrix = True
+    # Ground all default pods -> eliminate negation in ingress/egress_traffic
     ground_default_pod = True
 
     print("Configuration: ", 
         check_self_ingress_traffic, 
         check_select_by_no_policy, 
+        build_transpose_matrix,
         ground_default_pod)
 
     with timing("calculating reachability matrix"):
         matrix = ReachabilityMatrix.build_matrix(containers, policies, 
             check_self_ingress_traffic=check_self_ingress_traffic,
-            check_select_by_no_policy=check_select_by_no_policy)
+            check_select_by_no_policy=check_select_by_no_policy,
+            build_transpose_matrix=build_transpose_matrix)
 
     # https://github.com/Z3Prover/z3/discussions/4992
     # @nunoplopes: If you really need speed, you can't use Python. Python is slow and Z3's Python API is super slow.
