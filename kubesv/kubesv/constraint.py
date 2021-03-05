@@ -2,6 +2,7 @@ from math import log2, floor
 from os import name
 from z3 import *
 from .model import *
+from .utils import parse_z3_result
 
 
 class GlobalInfo:
@@ -10,10 +11,12 @@ class GlobalInfo:
             policies: List[PolicyAdapter], 
             namespaces: List[NamespaceAdapter],
             check_self_ingress_traffic=True,
-            check_select_by_no_policy=False):
+            check_select_by_no_policy=False,
+            ground_default_pod=False):
 
         self.check_self_traffic = check_self_ingress_traffic
         self.check_select_by_any = check_select_by_no_policy
+        self.ground_default_pod = ground_default_pod
 
         self.rels: Dict[str, FuncDeclRef] = {}
         self.ns_rels: Dict[str, FuncDeclRef] = {}
@@ -116,6 +119,8 @@ def get_fixpoint_engine(**kwargs) -> Fixedpoint:
     fp_options = {
         "ctrl_c": True,
         "engine": "datalog",
+        # NOTE: this enables NoD plugin (with DoC relations)
+        # "datalog.default_relation": "udoc",
         # NOTE: this must be set false to allow negation to be correctly dealt (verified by Nikolaj Bjorner)
         "datalog.generate_explanations": False,
     }
@@ -198,7 +203,7 @@ def define_model(gi: GlobalInfo):
         is_pol(pol),
         ingress_allow_by_pol(src, pol)
     ])
-    if gi.check_select_by_any:
+    if gi.check_select_by_any and not gi.ground_default_pod:
         gi.add_rule(ingress_traffic(src, sel), [
             is_pod(src),
             is_pod(sel),
@@ -214,7 +219,7 @@ def define_model(gi: GlobalInfo):
         selected_by_pol(sel, pol),
         egress_allow_by_pol(dst, pol)
     ])
-    if gi.check_select_by_any:
+    if gi.check_select_by_any and not gi.ground_default_pod:
         gi.add_rule(egress_traffic(dst, sel), [
             is_pod(dst),
             is_pod(sel),
@@ -224,10 +229,19 @@ def define_model(gi: GlobalInfo):
     edge = Function("edge", gi.pod_sort, gi.pod_sort, BoolSort())
     gi.register_relation("edge", edge, is_core=True)
 
+    disconnect = Function("disconnect", gi.pod_sort, gi.pod_sort, BoolSort())
+    gi.register_relation("disconnect", disconnect, is_core=True)
+
     # connected, if source's egress contains destination & destination's ingress contains source
     gi.add_rule(edge(src, dst), [
         ingress_traffic(src, dst),
         egress_traffic(dst, src)
+    ])
+
+    gi.add_rule(disconnect(src, dst), [
+        is_pod(src),
+        is_pod(dst),
+        Not(edge(src, dst))
     ])
 
     path = Function("path", gi.pod_sort, gi.pod_sort, BoolSort())
@@ -280,18 +294,46 @@ def define_pol_facts(gi: GlobalInfo):
         pol.define_ingress_rules(i, gi)
 
 
+def ground_default_pods(gi: GlobalInfo):
+    is_pod = gi.get_relation_core("is_pod")
+    ingress_traffic = gi.get_relation_core("ingress_traffic")
+    egress_traffic = gi.get_relation_core("egress_traffic")
+    selected_by_any = gi.get_relation_core("selected_by_any")
+    pod = gi.declare_var('pod', gi.pod_sort)
+    
+    fact = [selected_by_any(pod)]
+    sat, answer = get_answer(gi.fp, fact)
+    non_default = set()
+    if sat == z3.sat:
+        non_default = parse_z3_result(answer)
+
+    for i in range(len(gi.pods)):
+        if i not in non_default:
+            gi.add_rule(ingress_traffic(pod, gi.pod_value(i)), [
+                is_pod(pod)
+            ])
+            gi.add_rule(egress_traffic(pod, gi.pod_value(i)), [
+                is_pod(pod)
+            ])
+
+
 def build(pods: List[PodAdapter], 
         pols: List[PolicyAdapter], 
         nams: List[NamespaceAdapter], 
         check_self_ingress_traffic=True, 
-        check_select_by_no_policy=False, **kwargs):
+        check_select_by_no_policy=False, 
+        ground_default_pod=False, **kwargs):
     fp = get_fixpoint_engine(**kwargs)
     gi = GlobalInfo(fp, pods, pols, nams, 
         check_self_ingress_traffic=check_self_ingress_traffic, 
-        check_select_by_no_policy=check_select_by_no_policy)
+        check_select_by_no_policy=check_select_by_no_policy,
+        ground_default_pod=ground_default_pod)
 
     define_model(gi)
     define_pod_facts(gi)
     define_pol_facts(gi)
+
+    if check_select_by_no_policy and ground_default_pod:
+        ground_default_pods(gi)
 
     return gi

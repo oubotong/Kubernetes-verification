@@ -1,3 +1,4 @@
+from kubesv.kubesv.constraint import ground_default_pods
 from kubesv.constraint import *
 from kubesv.postprocess import *
 from .context import sample
@@ -15,7 +16,8 @@ class BasicTestSuite(unittest.TestCase):
         pods, pols, nams = sample.paper_example()
         gi = build(pods, pols, nams, 
             check_self_ingress_traffic=False, 
-            check_select_by_no_policy=False)
+            check_select_by_no_policy=False,
+            ground_default_pod=False)
 
         rch, iso = all_reach_isolate(gi)
         print(rch)

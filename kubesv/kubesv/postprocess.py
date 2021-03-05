@@ -1,65 +1,13 @@
 """
 Post processing some z3 results to implement similar results as Kano.
-Kano's problems: 
-    1. fail to handle empty selectors => which means selecting all instead of none
-    2. Kano only consider edges, not transistive paths
-    3. ad-hoc algorithm, NoD can express
 """
-from io import UnsupportedOperation
 from z3 import *
 from typing import *
 from typing_extensions import *
 from bitarray import bitarray
 from .constraint import GlobalInfo, get_answer
-
-
-def parse_z3_var_assignment(assign):
-    idx = get_var_index(assign.arg(0))
-    num = assign.arg(1).as_long()
-    return idx, num
-
-
-def parse_z3_and_var(assigns):
-    results = []
-    for i in range(assigns.num_args()):
-        assign = assigns.arg(i)
-        results.append(parse_z3_var_assignment(assign))
-    return results
-
-
-def parse_z3_or_and(answer: BoolRef) -> Set[Tuple[int, ...]]:
-    # assume the answer is Or(And(Var0, Var1, ...), ...)
-    all_answer = None
-    
-    if is_eq(answer):
-        return parse_z3_var_assignment(answer)
-
-    if is_and(answer):
-        all_answer = [-1 for _ in range(answer.num_args())]
-        for i in range(answer.num_args()):
-            assign = answer.arg(i)
-            idx, num = parse_z3_or_and(assign)
-            all_answer[idx] = num
-    elif is_or(answer):
-        all_answer = set()
-        for i in range(answer.num_args()):
-            assigns = answer.arg(i)
-            result = parse_z3_or_and(assigns)
-            if isinstance(result, tuple):
-                all_answer.add(result[1])
-            else:
-                all_answer.add(tuple(result))
-
-    return all_answer
-
-
-def parse_z3_result(answer: BoolRef):
-    result = parse_z3_or_and(answer)
-    if isinstance(result, list):
-        return {tuple(result)}
-    elif isinstance(result, tuple):
-        return {result[1]}
-    return result
+from .utils import *
+from time import perf_counter
 
 
 def get_z3_bitarray(answer: BoolRef, n_container: int, is_ingress=True) -> List[bitarray]:
@@ -132,6 +80,66 @@ def all_reach_isolate(gi: GlobalInfo):
     return all_reachable(matrix), all_isolated(matrix)
 
 
+def all_reachable_native(gi: GlobalInfo):
+    is_pod = gi.get_relation_core("is_pod")
+    disconnect = gi.get_relation_core("disconnect")
+
+    src = gi.declare_var('src_edge', gi.pod_sort)
+    dst = gi.declare_var('dst_edge', gi.pod_sort)
+
+    has_unreachable = Function('has_unreachable', gi.pod_sort, BoolSort())
+    gi.register_relation("has_unreachable", has_unreachable, is_core=True)
+    all_reachable = Function('all_reachable', gi.pod_sort, BoolSort())
+    gi.register_relation("all_reachable", all_reachable, is_core=True)
+
+    gi.add_rule(has_unreachable(dst), [
+        is_pod(src),
+        disconnect(src, dst)
+    ])
+
+    gi.add_rule(all_reachable(dst), [
+        is_pod(dst),
+        Not(has_unreachable(dst))
+    ])
+
+    fact = [all_reachable(dst)]
+    sat, answer = get_answer(gi.fp, fact)
+    if sat == z3.unsat:
+        return sat, []
+
+    return sat, parse_z3_result(answer)
+
+
+def all_isolated_native(gi: GlobalInfo):
+    edge = gi.get_relation_core("edge")
+    is_pod = gi.get_relation_core("is_pod")
+
+    src = gi.declare_var('src_edge', gi.pod_sort)
+    dst = gi.declare_var('dst_edge', gi.pod_sort)
+
+    has_reachable = Function('has_reachable', gi.pod_sort, BoolSort())
+    gi.register_relation("has_reachable", has_reachable, is_core=True)
+    all_isolated = Function('all_isolated', gi.pod_sort, BoolSort())
+    gi.register_relation("all_isolated", all_isolated, is_core=True)
+
+    gi.add_rule(has_reachable(dst), [
+        is_pod(src),
+        edge(src, dst)
+    ])
+
+    gi.add_rule(all_isolated(dst), [
+        is_pod(dst),
+        Not(has_reachable(dst))
+    ])
+
+    fact = [all_isolated(dst)]
+    sat, answer = get_answer(gi.fp, fact)
+    if sat == z3.unsat:
+        return sat, []
+
+    return sat, parse_z3_result(answer)
+
+
 def user_crosscheck(gi: GlobalInfo, l: str):
     """
     A container can be reached from other user’s container in the container network
@@ -190,7 +198,7 @@ def system_isolation(gi: GlobalInfo, idx: int):
     fact = [system_isolation(sel)]
     sat, answer = get_answer(gi.fp, fact)
     if sat == z3.unsat:
-        return []
+        return sat, []
     
     return sat, parse_z3_result(answer)
 
@@ -249,7 +257,7 @@ def policy_shadow(gi: GlobalInfo):
     fact = [policy_shadow(p0, p1)]
     sat, answer = get_answer(gi.fp, fact)
     if sat == z3.unsat:
-        return []
+        return sat, []
     
     return sat, parse_z3_result(answer)
 
@@ -308,6 +316,6 @@ def policy_conflict(gi: GlobalInfo):
     fact = [policy_conflict(p0, p1)]
     sat, answer = get_answer(gi.fp, fact)
     if sat == z3.unsat:
-        return []
+        return sat, []
     
     return sat, parse_z3_result(answer)

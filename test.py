@@ -15,7 +15,7 @@ from pprint import pprint
 
 @contextmanager
 def timing(description: str) -> None:
-    start = perf_counter()
+    start = perf_counter()    
     yield
     ellapsed_time = perf_counter() - start
 
@@ -46,13 +46,17 @@ metadata:
 
 
 def compare_results():
-    config = ConfigFiles()
+    data_folder = "data2"
+    config = ConfigFiles(data_folder, podN=1000, policyN=100)
     config.generateConfigFiles()
     cp = ConfigParser()
-    containers, policies = cp.parse('./data')
-    k_pods, k_pols, k_ns = read_kubesv_yaml('./data')
-    check_self_ingress_traffic=False 
-    check_select_by_no_policy=False
+    containers, policies = cp.parse(data_folder)
+    k_pods, k_pols, k_ns = read_kubesv_yaml(data_folder)
+    check_self_ingress_traffic = True 
+    check_select_by_no_policy = True
+    ground_default_pod = True
+
+    print("Configuration: ", check_self_ingress_traffic, check_select_by_no_policy, ground_default_pod)
 
     with timing("calculating reachability matrix"):
         matrix = ReachabilityMatrix.build_matrix(containers, policies, 
@@ -64,18 +68,21 @@ def compare_results():
     with timing("calculating SMT constraints"):
         gi = build(k_pods, k_pols, k_ns, 
                 check_self_ingress_traffic=check_self_ingress_traffic, 
-                check_select_by_no_policy=check_select_by_no_policy)
+                check_select_by_no_policy=check_select_by_no_policy,
+                ground_default_pod=ground_default_pod)
     
     with timing("measuring kano algorithm speed"):
+        ar, ai = kano.all_reachable(matrix), kano.all_isolated(matrix)
         kano_results = {
             "algorithm": "kano",
-            "all_reachable": kano.all_reachable(matrix),
-            "all_isolated": kano.all_isolated(matrix),
+            "all_reachable": ar,
+            "all_isolated": ai,
             "user_crosscheck": kano.user_crosscheck(matrix, containers, "User"),
         }
 
     with timing("measuring z3 algorithm speed"):
-        ar, ai = ksv.all_reach_isolate(gi)
+        # ar, ai = ksv.all_reach_isolate(gi)
+        (_, ar), (_, ai) = ksv.all_reachable_native(gi), ksv.all_isolated_native(gi)
         ksv_results = {
             "algorithm": "z3nd",
             "all_reachable": ar,
@@ -83,8 +90,8 @@ def compare_results():
             "user_crosscheck": list(ksv.user_crosscheck(gi, "User")[1]),
         }
 
-    # print(kano_results)
-    # print(ksv_results)
+    print(kano_results)
+    print(ksv_results)
 
 
 if __name__ == "__main__":
