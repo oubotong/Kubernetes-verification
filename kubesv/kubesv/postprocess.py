@@ -192,7 +192,7 @@ def system_isolation(gi: GlobalInfo, idx: int):
 
     gi.add_rule(system_isolation(sel), [
         is_pod(sel),
-        Not(edge(sel, pod_idx))
+        Not(edge(pod_idx, sel))
     ])
 
     fact = [system_isolation(sel)]

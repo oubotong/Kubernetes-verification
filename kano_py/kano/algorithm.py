@@ -47,11 +47,11 @@ def system_isolation(matrix: ReachabilityMatrix, idx: int) -> List[int]:
     System isolation. 
     A container is isolated with certain container, usually the kube-system container
     """
-    isolations = []
+    isolations = set()
     reachable = matrix.getrow(idx)
     for i in range(matrix.container_size):
         if not reachable[i]:
-            isolations.append(i)
+            isolations.add(i)
     return isolations
 
 
@@ -64,17 +64,20 @@ def policy_shadow(matrix: ReachabilityMatrix, policies: List[Policy], containers
     Otherwise, it assumes the select group won't have non-subset intersections
     """
     m = len(policies)
-    pols = []
+    pols = set()
     for i, container in enumerate(containers):
         i_select = container.select_policies
-        for j, pj in enumerate(i_select):
-            for k, pk in enumerate(i_select):
+        for j in i_select:
+            for k in i_select:
+                pj = policies[j]
+                pk = policies[k]
+
                 if j == k:
                     continue
                 j_allow = pj.working_allow_set
                 k_allow = pk.working_allow_set
                 if ((j_allow & k_allow) ^ k_allow).count() == 0:
-                    pols.append((j, k))
+                    pols.add((j, k))
     return pols
 
 
@@ -84,15 +87,18 @@ def policy_conflict(matrix: ReachabilityMatrix, policies: List[Policy], containe
     The connections built by a policy are totally contradict the connections built by another    
     """
     m = len(policies)
-    pols = []
+    pols = set()
     for i, container in enumerate(containers):
         i_select = container.select_policies
-        for j, pj in enumerate(i_select):
-            for k, pk in enumerate(i_select):
+        for j in i_select:
+            for k in i_select:
+                pj = policies[j]
+                pk = policies[k]
+
                 if j == k:
                     continue
                 j_disallow = ~ pj.working_allow_set
                 k_allow = pk.working_allow_set
                 if ((j_disallow & k_allow) ^ k_allow).count() == 0:
-                    pols.append((j, k))
+                    pols.add((j, k))
     return pols
